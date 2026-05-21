@@ -3,14 +3,33 @@ import Foundation
 
 public typealias RorkUsbmuxError = MinimuxerError
 public typealias RorkUsbmuxTunnelConfigBinding = TunnelConfigBinding
+public typealias RorkUsbmuxDirectoryEntry = RustDirectoryEntry
+public typealias RorkUsbmuxRawPacket = RawPacket
+public typealias RorkUsbmuxDevice = Device
+public typealias RorkUsbmuxNetInfo = NetInfo
+public typealias RorkUsbmuxInstallProvider = InstallProvider
+public typealias RorkUsbmuxProvisionProvider = ProvisionProvider
+public typealias RorkUsbmuxMounterProvider = MounterProvider
 
 public enum RorkUsbmux {
+    public static func describeError(_ error: RorkUsbmuxError) -> String {
+        Minimuxer.describeError(error)
+    }
+
+    public static func setDebug(_ enabled: Bool) {
+        Minimuxer.setDebug(enabled)
+    }
+
     public static func bindTunnelConfig(_ binding: RorkUsbmuxTunnelConfigBinding) {
         Minimuxer.bindTunnelConfig(binding)
     }
 
-    public static func retargetUsbmuxdAddr() {
-        Minimuxer.retargetUsbmuxdAddr()
+    public static func ready() -> Bool {
+        Minimuxer.ready()
+    }
+
+    public static func start(pairingFile: String, logPath: String) throws {
+        try Minimuxer.start(pairingFile: pairingFile, logPath: logPath)
     }
 
     public static func startWithLogger(
@@ -25,8 +44,24 @@ public enum RorkUsbmux {
         )
     }
 
-    public static func ready() -> Bool {
-        Minimuxer.ready()
+    public static func retargetUsbmuxdAddr() {
+        Minimuxer.retargetUsbmuxdAddr()
+    }
+
+    public static func retargetUsbmuxdAddress() {
+        Minimuxer.retargetUsbmuxdAddr()
+    }
+
+    public static func fetchUDID() -> String? {
+        Minimuxer.fetchUDID()
+    }
+
+    public static func testDeviceConnection(ifaddr: String?) -> Bool {
+        Minimuxer.testDeviceConnection(ifaddr: ifaddr)
+    }
+
+    public static func testDeviceConnection(address: String?) -> Bool {
+        Minimuxer.testDeviceConnection(ifaddr: address)
     }
 
     public static func stageApp(bundleId: String, ipaBytes: Data) throws {
@@ -37,8 +72,161 @@ public enum RorkUsbmux {
         try Minimuxer.installIpa(bundleId: bundleId)
     }
 
-    public static func describeError(_ error: RorkUsbmuxError) -> String {
-        Minimuxer.describeError(error)
+    public static func removeApp(bundleId: String) throws {
+        try Minimuxer.removeApp(bundleId: bundleId)
+    }
+
+    public static func debugApp(appId: String) throws {
+        try Minimuxer.debugApp(appId: appId)
+    }
+
+    public static func attachDebugger(pid: UInt32) throws {
+        try Minimuxer.attachDebugger(pid: pid)
+    }
+
+    public static func startAutoMounter(docsPath: String) {
+        Minimuxer.startAutoMounter(docsPath: docsPath)
+    }
+
+    public static func installProvisioningProfile(profile: Data) throws {
+        try Minimuxer.installProvisioningProfile(profile: profile)
+    }
+
+    public static func removeProvisioningProfile(id: String) throws {
+        try Minimuxer.removeProvisioningProfile(id: id)
+    }
+
+    public static func dumpProfiles(docsPath: String) throws -> String {
+        try Minimuxer.dumpProfiles(docsPath: docsPath)
+    }
+}
+
+public enum RorkUsbmuxAFC {
+    public static func remove(path: String) throws {
+        try AfcFileManager.remove(path: path)
+    }
+
+    public static func createDirectory(path: String) throws {
+        try AfcFileManager.createDirectory(path: path)
+    }
+
+    public static func writeFile(to path: String, bytes: Data) throws {
+        try AfcFileManager.writeFile(to: path, bytes: bytes)
+    }
+
+    public static func copyFileOutsideAfc(from sourcePath: String, to destinationPath: String) throws {
+        try AfcFileManager.copyFileOutsideAfc(from: sourcePath, to: destinationPath)
+    }
+
+    public static func contents() -> [RorkUsbmuxDirectoryEntry] {
+        AfcFileManager.contents()
+    }
+}
+
+public enum RorkUsbmuxInstall {
+    public static var provider: RorkUsbmuxInstallProvider? {
+        get { Install.provider }
+        set { Install.provider = newValue }
+    }
+
+    public static func stageApp(bundleId: String, ipaBytes: Data) throws {
+        try Install.yeetAppAfc(bundleId: bundleId, ipaBytes: ipaBytes)
+    }
+
+    public static func installApp(bundleId: String) throws {
+        try Install.installIpa(bundleId: bundleId)
+    }
+
+    public static func removeApp(bundleId: String) throws {
+        try Install.removeApp(bundleId: bundleId)
+    }
+}
+
+public enum RorkUsbmuxMounter {
+    public static var provider: RorkUsbmuxMounterProvider? {
+        get { Mounter.provider }
+        set { Mounter.provider = newValue }
+    }
+
+    public static var dmgMounted: Bool {
+        Mounter.dmgMounted
+    }
+
+    public static func startAutoMounter(docsPath: String) {
+        Mounter.startAutoMounter(docsPath: docsPath)
+    }
+}
+
+public enum RorkUsbmuxProvisioning {
+    public static var provider: RorkUsbmuxProvisionProvider? {
+        get { Provision.provider }
+        set { Provision.provider = newValue }
+    }
+
+    public static func installProfile(_ profile: Data) throws {
+        try Provision.installProvisioningProfile(profile: profile)
+    }
+
+    public static func removeProfile(id: String) throws {
+        try Provision.removeProvisioningProfile(id: id)
+    }
+
+    public static func dumpProfiles(docsPath: String) throws -> String {
+        try Provision.dumpProfiles(docsPath: docsPath)
+    }
+}
+
+public enum RorkUsbmuxJIT {
+    public static func debugApp(appId: String) throws {
+        try JIT.debugApp(appId: appId)
+    }
+
+    public static func attachDebugger(pid: UInt32) throws {
+        try JIT.attachDebugger(pid: pid)
+    }
+}
+
+public enum RorkUsbmuxMuxer {
+    public static var started: Bool {
+        get { Muxer.started }
+        set { Muxer.started = newValue }
+    }
+
+    public static var usbmuxdReady: Bool {
+        get { Muxer.usbmuxdReady }
+        set { Muxer.usbmuxdReady = newValue }
+    }
+
+    public static var isRemotePairing: Bool {
+        get { Muxer.isrppairing }
+        set { Muxer.isrppairing = newValue }
+    }
+
+    public static func retargetUsbmuxdAddr() {
+        Muxer.retargetUsbmuxdAddr()
+    }
+
+    public static func start(pairingFile: String, logPath: String) throws {
+        try Muxer.start(pairingFile: pairingFile, logPath: logPath)
+    }
+
+    public static func notifyDeviceAttached(deviceIP: String) {
+        Muxer.notifyDeviceAttached(deviceIP: deviceIP)
+    }
+
+    public static func notifyDeviceDetached() {
+        Muxer.notifyDeviceDetached()
+    }
+}
+
+public enum RorkUsbmuxHeartbeat {
+    public static var lastBeatSuccessful: Bool {
+        get { Heartbeat.lastBeatSuccessful }
+        set { Heartbeat.lastBeatSuccessful = newValue }
+    }
+
+    public static func startBeat() {
+        Heartbeat.startBeat()
     }
 }
 
@@ -50,5 +238,10 @@ public enum RorkUsbmuxNetworkObserver {
 
     public static func refreshEndpoint() {
         NetworkObserver.shared.refreshEndpoint()
+    }
+
+    @discardableResult
+    public static func stop() -> Bool {
+        NetworkObserver.shared.stop()
     }
 }

@@ -14,5 +14,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build Swift package for iOS
+      - name: Build Swift package for iPhoneOS
         run: xcodebuild -scheme RorkUsbmux -destination 'generic/platform=iOS' -derivedDataPath DerivedData build
+
+      - name: Build Swift package for iPhone Simulator
+        run: xcodebuild -scheme RorkUsbmux -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedDataSimulator build

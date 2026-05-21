@@ -7,33 +7,31 @@ let packageRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 
 func firstExistingOpenSSLRoot() -> URL {
     let environment = ProcessInfo.processInfo.environment
+    let platformName = environment["PLATFORM_NAME"] ?? ""
+    let sdkRoot = environment["SDKROOT"] ?? ""
+    let isSimulatorBuild = platformName.contains("simulator") || sdkRoot.contains("Simulator")
+    let bundledRoot = packageRoot
+        .appendingPathComponent("Vendor/OpenSSL")
+        .appendingPathComponent(isSimulatorBuild ? "iphonesimulator" : "iphoneos")
     let environmentCandidates = [
-        environment["RORK_OPENSSL_ROOT"],
+        environment["RORK_USBMUX_OPENSSL_ROOT"],
         environment["OPENSSL_ROOT_DIR"],
     ].compactMap { value -> URL? in
         guard let value, !value.isEmpty else { return nil }
         return URL(fileURLWithPath: value)
     }
+    let fallbackBundledRoot = packageRoot
+        .appendingPathComponent("Vendor/OpenSSL")
+        .appendingPathComponent(isSimulatorBuild ? "iphoneos" : "iphonesimulator")
 
-    let bundledCandidates = [
-        packageRoot.appendingPathComponent("Vendor/OpenSSL/iphoneos"),
-        packageRoot
-            .deletingLastPathComponent()
-            .appendingPathComponent("rork-max-ios/Vendor/LiveContainer/OpenSSL/iphoneos"),
-        packageRoot
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Vendor/LiveContainer/OpenSSL/iphoneos"),
-    ]
-
-    let candidates = environmentCandidates + bundledCandidates
+    let candidates = environmentCandidates + [bundledRoot, fallbackBundledRoot]
     if let existing = candidates.first(where: { root in
         FileManager.default.fileExists(atPath: root.appendingPathComponent("include/openssl/ssl.h").path)
     }) {
         return existing
     }
 
-    return candidates.first ?? packageRoot.appendingPathComponent("Vendor/OpenSSL/iphoneos")
+    return bundledRoot
 }
 
 let openSSLRoot = firstExistingOpenSSLRoot()
@@ -146,7 +144,7 @@ let openSSLLinkerSettings: [LinkerSetting] = [
 let package = Package(
     name: "RorkUsbmux",
     platforms: [
-        .iOS("18.0"),
+        .iOS(.v13),
     ],
     products: [
         .library(
