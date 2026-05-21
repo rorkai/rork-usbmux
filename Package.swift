@@ -38,7 +38,7 @@ let openSSLRoot = firstExistingOpenSSLRoot()
 let openSSLIncludePath = openSSLRoot.appendingPathComponent("include").path
 let openSSLLibraryPath = openSSLRoot.appendingPathComponent("lib").path
 
-let sideStoreNativeSources = [
+let libimobiledeviceNativeSources = [
     "libimobiledevice/common/debug.c",
     "libimobiledevice/common/userpref.c",
     "libimobiledevice/src/afc.c",
@@ -111,7 +111,7 @@ let sideStoreNativeSources = [
     "libusbmuxd/src/libusbmuxd.c",
 ]
 
-let sideStoreNativeCSettings: [CSetting] = [
+let libimobiledeviceNativeCSettings: [CSetting] = [
     .define("HAVE_OPENSSL"),
     .define("HAVE_STPNCPY"),
     .define("HAVE_STPCPY"),
@@ -158,10 +158,10 @@ let package = Package(
     targets: [
         .target(
             name: "RorkLibimobiledeviceNative",
-            path: "Vendor/SideStoreNative",
-            sources: sideStoreNativeSources,
+            path: "Vendor/LibimobiledeviceNative",
+            sources: libimobiledeviceNativeSources,
             publicHeadersPath: "libimobiledevice/include",
-            cSettings: sideStoreNativeCSettings,
+            cSettings: libimobiledeviceNativeCSettings,
             cxxSettings: [
                 .unsafeFlags(["-I\(openSSLIncludePath)"]),
             ],
