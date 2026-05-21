@@ -1,0 +1,6 @@
+module libimobiledevice {
+  umbrella "libimobiledevice"
+  header "asprintf.h"
+  header "endianness.h"
+  export *
+}

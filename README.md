@@ -68,7 +68,7 @@ can override the OpenSSL root with `RORK_USBMUX_OPENSSL_ROOT` or
 `OPENSSL_ROOT_DIR`; the root must contain `include/` and `lib/` directories.
 
 The C/C++ dependency sources are committed directly under
-`Vendor/LibimobiledeviceNative` instead of git submodules so Xcode and SwiftPM
+`Vendor/libimobiledevice` instead of git submodules so Xcode and SwiftPM
 consumers can resolve the package without running extra submodule setup.
 
 ## API Shape

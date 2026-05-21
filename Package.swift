@@ -38,7 +38,7 @@ let openSSLRoot = firstExistingOpenSSLRoot()
 let openSSLIncludePath = openSSLRoot.appendingPathComponent("include").path
 let openSSLLibraryPath = openSSLRoot.appendingPathComponent("lib").path
 
-let libimobiledeviceNativeSources = [
+let libimobiledeviceSources = [
     "libimobiledevice/common/debug.c",
     "libimobiledevice/common/userpref.c",
     "libimobiledevice/src/afc.c",
@@ -111,7 +111,7 @@ let libimobiledeviceNativeSources = [
     "libusbmuxd/src/libusbmuxd.c",
 ]
 
-let libimobiledeviceNativeCSettings: [CSetting] = [
+let libimobiledeviceCSettings: [CSetting] = [
     .define("HAVE_OPENSSL"),
     .define("HAVE_STPNCPY"),
     .define("HAVE_STPCPY"),
@@ -157,11 +157,11 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "RorkLibimobiledeviceNative",
-            path: "Vendor/LibimobiledeviceNative",
-            sources: libimobiledeviceNativeSources,
+            name: "libimobiledevice",
+            path: "Vendor/libimobiledevice",
+            sources: libimobiledeviceSources,
             publicHeadersPath: "libimobiledevice/include",
-            cSettings: libimobiledeviceNativeCSettings,
+            cSettings: libimobiledeviceCSettings,
             cxxSettings: [
                 .unsafeFlags(["-I\(openSSLIncludePath)"]),
             ],
@@ -170,7 +170,7 @@ let package = Package(
         .target(
             name: "RorkUsbmux",
             dependencies: [
-                "RorkLibimobiledeviceNative",
+                "libimobiledevice",
                 .product(name: "Minimuxer", package: "minimuxer"),
             ],
             linkerSettings: openSSLLinkerSettings
