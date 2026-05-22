@@ -432,6 +432,25 @@ LIBIMOBILEDEVICE_API const char* idevice_strerror(idevice_error_t err);
  */
 LIBIMOBILEDEVICE_API const char* libimobiledevice_version();
 
+/**
+ * Sets process-local ClientOptions for the next installation_proxy Install
+ * request made through this libimobiledevice instance when the caller does not
+ * provide explicit client options.
+ *
+ * RorkUsbmux uses this to bridge MiniMuxer's high-level install API to
+ * installation_proxy's ClientOptions field without hard-coding policy in the
+ * vendored C layer.
+ *
+ * @param plist_xml XML property list data whose root object must be a dict.
+ * @param length Length of plist_xml in bytes.
+ */
+LIBIMOBILEDEVICE_API void rork_usbmux_set_instproxy_install_client_options_xml(const char *plist_xml, uint32_t length);
+
+/**
+ * Clears process-local installation_proxy Install ClientOptions.
+ */
+LIBIMOBILEDEVICE_API void rork_usbmux_clear_instproxy_install_client_options(void);
+
 /* macros */
 /** Helper macro to get a numerical representation of a product version tuple */
 #define IDEVICE_DEVICE_VERSION(maj, min, patch) ((((maj) & 0xFF) << 16) | (((min) & 0xFF) << 8) | ((patch) & 0xFF))
@@ -441,4 +460,3 @@ LIBIMOBILEDEVICE_API const char* libimobiledevice_version();
 #endif
 
 #endif
-

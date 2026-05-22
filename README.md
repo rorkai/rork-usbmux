@@ -50,7 +50,13 @@ RorkUsbmuxNetworkObserver.refreshEndpoint()
 
 let ipaBytes = try Data(contentsOf: ipaURL)
 try RorkUsbmux.stageApp(bundleId: bundleIdentifier, ipaBytes: ipaBytes)
-try RorkUsbmux.installApp(bundleId: bundleIdentifier)
+try RorkUsbmux.installApp(
+    bundleId: bundleIdentifier,
+    clientOptions: [
+        .bundleIdentifier: bundleIdentifier,
+        "CustomClientOption": "CustomValue"
+    ]
+)
 ```
 
 ## Native Dependencies

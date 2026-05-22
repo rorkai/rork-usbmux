@@ -1,6 +1,15 @@
 import Foundation
 @_exported import Minimuxer
 
+@_silgen_name("rork_usbmux_set_instproxy_install_client_options_xml")
+private func _rork_usbmux_set_instproxy_install_client_options_xml(
+    _ plistXml: UnsafePointer<CChar>?,
+    _ length: UInt32
+)
+
+@_silgen_name("rork_usbmux_clear_instproxy_install_client_options")
+private func _rork_usbmux_clear_instproxy_install_client_options()
+
 public typealias RorkUsbmuxError = MinimuxerError
 public typealias RorkUsbmuxTunnelConfigBinding = TunnelConfigBinding
 public typealias RorkUsbmuxDirectoryEntry = RustDirectoryEntry
@@ -10,6 +19,106 @@ public typealias RorkUsbmuxNetInfo = NetInfo
 public typealias RorkUsbmuxInstallProvider = InstallProvider
 public typealias RorkUsbmuxProvisionProvider = ProvisionProvider
 public typealias RorkUsbmuxMounterProvider = MounterProvider
+
+public struct RorkUsbmuxInstallClientOptionKey: RawRepresentable, Hashable, ExpressibleByStringLiteral, Sendable {
+    public var rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    public static let bundleIdentifier = Self("CFBundleIdentifier")
+    public static let applicationSINF = Self("ApplicationSINF")
+    public static let applicationType = Self("ApplicationType")
+    public static let bundleIDs = Self("BundleIDs")
+    public static let iTunesMetadata = Self("iTunesMetadata")
+    public static let packageType = Self("PackageType")
+    public static let returnAttributes = Self("ReturnAttributes")
+    public static let skipUninstall = Self("SkipUninstall")
+}
+
+public struct RorkUsbmuxInstallClientOptions: Equatable, ExpressibleByDictionaryLiteral, Sendable {
+    public typealias Key = RorkUsbmuxInstallClientOptionKey
+    public typealias Value = String
+
+    public static let empty = RorkUsbmuxInstallClientOptions()
+
+    public var stringValues: [String: String]
+
+    public init(_ stringValues: [String: String] = [:]) {
+        self.stringValues = stringValues
+    }
+
+    public init(_ values: [Key: String]) {
+        self.stringValues = Dictionary(
+            uniqueKeysWithValues: values.map { ($0.key.rawValue, $0.value) }
+        )
+    }
+
+    public init(dictionaryLiteral elements: (Key, String)...) {
+        self.stringValues = elements.reduce(into: [:]) { options, element in
+            options[element.0.rawValue] = element.1
+        }
+    }
+
+    public subscript(key: Key) -> String? {
+        get {
+            stringValues[key.rawValue]
+        }
+        set {
+            stringValues[key.rawValue] = newValue
+        }
+    }
+
+    var isEmpty: Bool {
+        stringValues.isEmpty
+    }
+
+    func xmlData() throws -> Data {
+        try PropertyListSerialization.data(
+            fromPropertyList: stringValues,
+            format: .xml,
+            options: 0
+        )
+    }
+}
+
+private enum RorkUsbmuxInstallClientOptionsScope {
+    static func withOptions<T>(
+        _ clientOptions: RorkUsbmuxInstallClientOptions,
+        _ body: () throws -> T
+    ) throws -> T {
+        guard !clientOptions.isEmpty else {
+            return try body()
+        }
+
+        let data = try clientOptions.xmlData()
+        data.withUnsafeBytes { rawBuffer in
+            guard let baseAddress = rawBuffer.baseAddress?.assumingMemoryBound(to: CChar.self) else {
+                return
+            }
+
+            _rork_usbmux_set_instproxy_install_client_options_xml(
+                baseAddress,
+                UInt32(data.count)
+            )
+        }
+
+        defer {
+            _rork_usbmux_clear_instproxy_install_client_options()
+        }
+
+        return try body()
+    }
+}
 
 public enum RorkUsbmux {
     public static func describeError(_ error: RorkUsbmuxError) -> String {
@@ -70,6 +179,15 @@ public enum RorkUsbmux {
 
     public static func installApp(bundleId: String) throws {
         try Minimuxer.installIpa(bundleId: bundleId)
+    }
+
+    public static func installApp(
+        bundleId: String,
+        clientOptions: RorkUsbmuxInstallClientOptions
+    ) throws {
+        try RorkUsbmuxInstallClientOptionsScope.withOptions(clientOptions) {
+            try Minimuxer.installIpa(bundleId: bundleId)
+        }
     }
 
     public static func removeApp(bundleId: String) throws {
@@ -135,6 +253,15 @@ public enum RorkUsbmuxInstall {
 
     public static func installApp(bundleId: String) throws {
         try Install.installIpa(bundleId: bundleId)
+    }
+
+    public static func installApp(
+        bundleId: String,
+        clientOptions: RorkUsbmuxInstallClientOptions
+    ) throws {
+        try RorkUsbmuxInstallClientOptionsScope.withOptions(clientOptions) {
+            try Install.installIpa(bundleId: bundleId)
+        }
     }
 
     public static func removeApp(bundleId: String) throws {

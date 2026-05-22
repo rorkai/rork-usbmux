@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -48,6 +49,49 @@ struct instproxy_status_data {
 	instproxy_status_cb_t cbfunc;
 	void *user_data;
 };
+
+static pthread_mutex_t rork_instproxy_install_client_options_mutex = PTHREAD_MUTEX_INITIALIZER;
+static plist_t rork_instproxy_install_client_options = NULL;
+
+void rork_usbmux_set_instproxy_install_client_options_xml(const char *plist_xml, uint32_t length)
+{
+	plist_t options = NULL;
+	if (plist_xml && length > 0) {
+		plist_from_xml(plist_xml, length, &options);
+		if (options && plist_get_node_type(options) != PLIST_DICT) {
+			plist_free(options);
+			options = NULL;
+		}
+	}
+
+	pthread_mutex_lock(&rork_instproxy_install_client_options_mutex);
+	if (rork_instproxy_install_client_options) {
+		plist_free(rork_instproxy_install_client_options);
+	}
+	rork_instproxy_install_client_options = options;
+	pthread_mutex_unlock(&rork_instproxy_install_client_options_mutex);
+}
+
+void rork_usbmux_clear_instproxy_install_client_options(void)
+{
+	pthread_mutex_lock(&rork_instproxy_install_client_options_mutex);
+	if (rork_instproxy_install_client_options) {
+		plist_free(rork_instproxy_install_client_options);
+		rork_instproxy_install_client_options = NULL;
+	}
+	pthread_mutex_unlock(&rork_instproxy_install_client_options_mutex);
+}
+
+static plist_t rork_usbmux_copy_instproxy_install_client_options(void)
+{
+	plist_t options = NULL;
+	pthread_mutex_lock(&rork_instproxy_install_client_options_mutex);
+	if (rork_instproxy_install_client_options) {
+		options = plist_copy(rork_instproxy_install_client_options);
+	}
+	pthread_mutex_unlock(&rork_instproxy_install_client_options_mutex);
+	return options;
+}
 
 /**
  * Converts an error string identifier to a instproxy_error_t value.
@@ -660,8 +704,9 @@ instproxy_error_t instproxy_install(instproxy_client_t client, const char *pkg_p
 
 	plist_t command = plist_new_dict();
 	plist_dict_set_item(command, "Command", plist_new_string("Install"));
-	if (client_options)
-		plist_dict_set_item(command, "ClientOptions", plist_copy(client_options));
+	plist_t effective_client_options = client_options ? plist_copy(client_options) : rork_usbmux_copy_instproxy_install_client_options();
+	if (effective_client_options)
+		plist_dict_set_item(command, "ClientOptions", effective_client_options);
 	plist_dict_set_item(command, "PackagePath", plist_new_string(pkg_path));
 
 	res = instproxy_perform_command(client, command, status_cb == NULL ? INSTPROXY_COMMAND_TYPE_SYNC : INSTPROXY_COMMAND_TYPE_ASYNC, status_cb, user_data);
