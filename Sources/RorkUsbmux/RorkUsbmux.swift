@@ -10,6 +10,12 @@ private func _rork_usbmux_set_instproxy_install_client_options_xml(
 @_silgen_name("rork_usbmux_clear_instproxy_install_client_options")
 private func _rork_usbmux_clear_instproxy_install_client_options()
 
+@_silgen_name("rork_usbmux_copy_instproxy_last_error_message")
+private func _rork_usbmux_copy_instproxy_last_error_message() -> UnsafeMutablePointer<CChar>?
+
+@_silgen_name("rork_usbmux_free_instproxy_error_message")
+private func _rork_usbmux_free_instproxy_error_message(_ message: UnsafeMutablePointer<CChar>?)
+
 public typealias RorkUsbmuxError = MinimuxerError
 public typealias RorkUsbmuxTunnelConfigBinding = TunnelConfigBinding
 public typealias RorkUsbmuxDirectoryEntry = RustDirectoryEntry
@@ -188,6 +194,18 @@ public enum RorkUsbmux {
         try RorkUsbmuxInstallClientOptionsScope.withOptions(clientOptions) {
             try Minimuxer.installIpa(bundleId: bundleId)
         }
+    }
+
+    public static func lastInstallProxyErrorMessage() -> String? {
+        guard let pointer = _rork_usbmux_copy_instproxy_last_error_message() else {
+            return nil
+        }
+        defer {
+            _rork_usbmux_free_instproxy_error_message(pointer)
+        }
+
+        let message = String(cString: pointer).trimmingCharacters(in: .whitespacesAndNewlines)
+        return message.isEmpty ? nil : message
     }
 
     public static func removeApp(bundleId: String) throws {

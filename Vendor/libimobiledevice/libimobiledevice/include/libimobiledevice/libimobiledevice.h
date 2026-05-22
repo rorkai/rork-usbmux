@@ -451,6 +451,18 @@ LIBIMOBILEDEVICE_API void rork_usbmux_set_instproxy_install_client_options_xml(c
  */
 LIBIMOBILEDEVICE_API void rork_usbmux_clear_instproxy_install_client_options(void);
 
+/**
+ * Copies the most recent installation_proxy Install ErrorDescription observed by
+ * this process. The caller must free the returned pointer with
+ * rork_usbmux_free_instproxy_error_message.
+ */
+LIBIMOBILEDEVICE_API char *rork_usbmux_copy_instproxy_last_error_message(void);
+
+/**
+ * Frees a message returned by rork_usbmux_copy_instproxy_last_error_message.
+ */
+LIBIMOBILEDEVICE_API void rork_usbmux_free_instproxy_error_message(char *message);
+
 /* macros */
 /** Helper macro to get a numerical representation of a product version tuple */
 #define IDEVICE_DEVICE_VERSION(maj, min, patch) ((((maj) & 0xFF) << 16) | (((min) & 0xFF) << 8) | ((patch) & 0xFF))

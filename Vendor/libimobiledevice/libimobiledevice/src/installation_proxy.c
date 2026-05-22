@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdio.h>
 
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -52,6 +53,8 @@ struct instproxy_status_data {
 
 static pthread_mutex_t rork_instproxy_install_client_options_mutex = PTHREAD_MUTEX_INITIALIZER;
 static plist_t rork_instproxy_install_client_options = NULL;
+static pthread_mutex_t rork_instproxy_last_error_mutex = PTHREAD_MUTEX_INITIALIZER;
+static char *rork_instproxy_last_error_message = NULL;
 
 void rork_usbmux_set_instproxy_install_client_options_xml(const char *plist_xml, uint32_t length)
 {
@@ -91,6 +94,55 @@ static plist_t rork_usbmux_copy_instproxy_install_client_options(void)
 	}
 	pthread_mutex_unlock(&rork_instproxy_install_client_options_mutex);
 	return options;
+}
+
+static void rork_usbmux_clear_instproxy_last_error_message(void)
+{
+	pthread_mutex_lock(&rork_instproxy_last_error_mutex);
+	if (rork_instproxy_last_error_message) {
+		free(rork_instproxy_last_error_message);
+		rork_instproxy_last_error_message = NULL;
+	}
+	pthread_mutex_unlock(&rork_instproxy_last_error_mutex);
+}
+
+static void rork_usbmux_set_instproxy_last_error_message(const char *name, const char *description, uint64_t code)
+{
+	const char *safe_name = name ? name : "Unknown";
+	const char *safe_description = description ? description : "No ErrorDescription";
+	int length = snprintf(NULL, 0, "%s: %s (code 0x%08" PRIx64 ")", safe_name, safe_description, code);
+	if (length <= 0) {
+		return;
+	}
+
+	char *message = (char *)malloc((size_t)length + 1);
+	if (!message) {
+		return;
+	}
+	snprintf(message, (size_t)length + 1, "%s: %s (code 0x%08" PRIx64 ")", safe_name, safe_description, code);
+
+	pthread_mutex_lock(&rork_instproxy_last_error_mutex);
+	if (rork_instproxy_last_error_message) {
+		free(rork_instproxy_last_error_message);
+	}
+	rork_instproxy_last_error_message = message;
+	pthread_mutex_unlock(&rork_instproxy_last_error_mutex);
+}
+
+char *rork_usbmux_copy_instproxy_last_error_message(void)
+{
+	char *copy = NULL;
+	pthread_mutex_lock(&rork_instproxy_last_error_mutex);
+	if (rork_instproxy_last_error_message) {
+		copy = strdup(rork_instproxy_last_error_message);
+	}
+	pthread_mutex_unlock(&rork_instproxy_last_error_mutex);
+	return copy;
+}
+
+void rork_usbmux_free_instproxy_error_message(char *message)
+{
+	free(message);
 }
 
 /**
@@ -396,6 +448,7 @@ static instproxy_error_t instproxy_receive_status_loop(instproxy_client_t client
 			res = instproxy_status_get_error(node, &error_name, &error_description, &error_code);
 			if (res != INSTPROXY_E_SUCCESS) {
 				debug_info("command: %s, error %d, code 0x%08"PRIx64", name: %s, description: \"%s\"", command_name, res, error_code, error_name, error_description ? error_description: "N/A");
+				rork_usbmux_set_instproxy_last_error_message(error_name, error_description, error_code);
 				complete = 1;
 			}
 
@@ -701,6 +754,7 @@ instproxy_error_t instproxy_lookup(instproxy_client_t client, const char** appid
 instproxy_error_t instproxy_install(instproxy_client_t client, const char *pkg_path, plist_t client_options, instproxy_status_cb_t status_cb, void *user_data)
 {
 	instproxy_error_t res = INSTPROXY_E_UNKNOWN_ERROR;
+	rork_usbmux_clear_instproxy_last_error_message();
 
 	plist_t command = plist_new_dict();
 	plist_dict_set_item(command, "Command", plist_new_string("Install"));
