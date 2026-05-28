@@ -141,6 +141,13 @@ let openSSLLinkerSettings: [LinkerSetting] = [
     .linkedLibrary("crypto"),
 ]
 
+// Minimuxer's prebuilt RustBridge archive currently marks some object files with
+// the SDK version as their minimum iOS version. The app controls the real
+// deployment target, so suppress that metadata-only linker warning here.
+let minimuxerLinkerSettings: [LinkerSetting] = [
+    .unsafeFlags(["-Wl,-deployment_target_mismatches,suppress"]),
+]
+
 let package = Package(
     name: "RorkUsbmux",
     platforms: [
@@ -173,7 +180,7 @@ let package = Package(
                 "libimobiledevice",
                 .product(name: "Minimuxer", package: "minimuxer"),
             ],
-            linkerSettings: openSSLLinkerSettings
+            linkerSettings: openSSLLinkerSettings + minimuxerLinkerSettings
         ),
     ],
     cLanguageStandard: .gnu11,
