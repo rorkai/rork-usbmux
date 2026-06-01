@@ -3,10 +3,10 @@
     {
       "identity" : "minimuxer",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SideStore/minimuxer.git",
+      "location" : "https://github.com/rorkai/minimuxer.git",
       "state" : {
-        "branch" : "develop",
-        "revision" : "e3614068c77fb09945eff363fbc3f9e8abf4c834"
+        "revision" : "e3614068c77fb09945eff363fbc3f9e8abf4c834",
+        "version" : "0.1.0"
       }
     },
     {

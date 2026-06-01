@@ -160,7 +160,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/SideStore/minimuxer.git", branch: "develop"),
+        .package(url: "https://github.com/rorkai/minimuxer.git", from: "0.1.0"),
     ],
     targets: [
         .target(
