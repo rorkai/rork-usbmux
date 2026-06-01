@@ -43,11 +43,11 @@
 #endif
 #include <usbmuxd.h>
 #if defined(HAVE_OPENSSL)
-#include <openssl/bn.h>
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <OpenSSL/bn.h>
+#include <OpenSSL/pem.h>
+#include <OpenSSL/rsa.h>
+#include <OpenSSL/x509.h>
+#include <OpenSSL/x509v3.h>
 #if OPENSSL_VERSION_NUMBER < 0x1010000fL || \
 	(defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x20700000L))
 #define X509_set1_notBefore X509_set_notBefore
@@ -1169,4 +1169,3 @@ userpref_error_t pair_record_set_item_from_key_data(plist_t pair_record, const c
 
 	return ret;
 }
-

@@ -1,42 +1,6 @@
 // swift-tools-version: 5.9
 
-import Foundation
 import PackageDescription
-
-let packageRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-
-func firstExistingOpenSSLRoot() -> URL {
-    let environment = ProcessInfo.processInfo.environment
-    let platformName = environment["PLATFORM_NAME"] ?? ""
-    let sdkRoot = environment["SDKROOT"] ?? ""
-    let isSimulatorBuild = platformName.contains("simulator") || sdkRoot.contains("Simulator")
-    let bundledRoot = packageRoot
-        .appendingPathComponent("Vendor/OpenSSL")
-        .appendingPathComponent(isSimulatorBuild ? "iphonesimulator" : "iphoneos")
-    let environmentCandidates = [
-        environment["RORK_USBMUX_OPENSSL_ROOT"],
-        environment["OPENSSL_ROOT_DIR"],
-    ].compactMap { value -> URL? in
-        guard let value, !value.isEmpty else { return nil }
-        return URL(fileURLWithPath: value)
-    }
-    let fallbackBundledRoot = packageRoot
-        .appendingPathComponent("Vendor/OpenSSL")
-        .appendingPathComponent(isSimulatorBuild ? "iphoneos" : "iphonesimulator")
-
-    let candidates = environmentCandidates + [bundledRoot, fallbackBundledRoot]
-    if let existing = candidates.first(where: { root in
-        FileManager.default.fileExists(atPath: root.appendingPathComponent("include/openssl/ssl.h").path)
-    }) {
-        return existing
-    }
-
-    return bundledRoot
-}
-
-let openSSLRoot = firstExistingOpenSSLRoot()
-let openSSLIncludePath = openSSLRoot.appendingPathComponent("include").path
-let openSSLLibraryPath = openSSLRoot.appendingPathComponent("lib").path
 
 let libimobiledeviceSources = [
     "libimobiledevice/common/debug.c",
@@ -132,20 +96,8 @@ let libimobiledeviceCSettings: [CSetting] = [
     .headerSearchPath("libplist/src"),
     .headerSearchPath("libusbmuxd/include"),
     .headerSearchPath("libusbmuxd/src"),
-    .unsafeFlags(["-I\(openSSLIncludePath)"]),
-]
-
-let openSSLLinkerSettings: [LinkerSetting] = [
-    .unsafeFlags(["-L\(openSSLLibraryPath)"]),
-    .linkedLibrary("ssl"),
-    .linkedLibrary("crypto"),
-]
-
-// Minimuxer's prebuilt RustBridge archive currently marks some object files with
-// the SDK version as their minimum iOS version. The app controls the real
-// deployment target, so suppress that metadata-only linker warning here.
-let minimuxerLinkerSettings: [LinkerSetting] = [
-    .unsafeFlags(["-Wl,-deployment_target_mismatches,suppress"]),
+    .headerSearchPath("../OpenSSL/iphoneos/include"),
+    .headerSearchPath("../OpenSSL/iphonesimulator/include"),
 ]
 
 let package = Package(
@@ -163,24 +115,35 @@ let package = Package(
         .package(url: "https://github.com/rorkai/minimuxer.git", from: "0.1.0"),
     ],
     targets: [
+        .binaryTarget(
+            name: "OpenSSL",
+            path: "Vendor/OpenSSL/libssl.xcframework"
+        ),
+        .binaryTarget(
+            name: "OpenSSLCrypto",
+            path: "Vendor/OpenSSL/libcrypto.xcframework"
+        ),
         .target(
             name: "libimobiledevice",
+            dependencies: [
+                "OpenSSL",
+                "OpenSSLCrypto",
+            ],
             path: "Vendor/libimobiledevice",
             sources: libimobiledeviceSources,
             publicHeadersPath: "libimobiledevice/include",
             cSettings: libimobiledeviceCSettings,
             cxxSettings: [
-                .unsafeFlags(["-I\(openSSLIncludePath)"]),
-            ],
-            linkerSettings: openSSLLinkerSettings
+                .headerSearchPath("../OpenSSL/iphoneos/include"),
+                .headerSearchPath("../OpenSSL/iphonesimulator/include"),
+            ]
         ),
         .target(
             name: "RorkUsbmux",
             dependencies: [
                 "libimobiledevice",
                 .product(name: "Minimuxer", package: "minimuxer"),
-            ],
-            linkerSettings: openSSLLinkerSettings + minimuxerLinkerSettings
+            ]
         ),
     ],
     cLanguageStandard: .gnu11,

@@ -48,12 +48,12 @@
 #include <libimobiledevice-glue/tlv.h>
 
 #if defined(HAVE_OPENSSL)
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
+#include <OpenSSL/hmac.h>
+#include <OpenSSL/evp.h>
+#include <OpenSSL/rand.h>
 #if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x2030200fL)
-#include <openssl/chacha.h>
-#include <openssl/poly1305.h>
+#include <OpenSSL/chacha.h>
+#include <OpenSSL/poly1305.h>
 #endif
 #elif defined(HAVE_GCRYPT)
 #include <gcrypt.h>

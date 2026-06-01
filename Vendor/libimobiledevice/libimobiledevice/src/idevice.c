@@ -42,9 +42,9 @@
 #include <usbmuxd.h>
 
 #if defined(HAVE_OPENSSL)
-#include <openssl/err.h>
-#include <openssl/rsa.h>
-#include <openssl/ssl.h>
+#include <OpenSSL/err.h>
+#include <OpenSSL/rsa.h>
+#include <OpenSSL/ssl.h>
 #elif defined(HAVE_GNUTLS)
 #include <gnutls/gnutls.h>
 #elif defined(HAVE_MBEDTLS)

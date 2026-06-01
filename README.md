@@ -67,11 +67,9 @@ RorkUsbmux vendors the native sources MiniMuxer needs:
 - libimobiledevice-glue
 - libplist
 - libusbmuxd
-- OpenSSL static libraries and headers for iPhoneOS and iPhone Simulator
+- OpenSSL XCFrameworks, static libraries, and headers for iPhoneOS and iPhone Simulator
 
-The default path should work with a normal Swift Package install. Advanced users
-can override the OpenSSL root with `RORK_USBMUX_OPENSSL_ROOT` or
-`OPENSSL_ROOT_DIR`; the root must contain `include/` and `lib/` directories.
+The default path should work with a normal Swift Package install.
 
 The C/C++ dependency sources are committed directly under
 `Vendor/libimobiledevice` instead of git submodules so Xcode and SwiftPM
