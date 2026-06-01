@@ -26,6 +26,93 @@ public typealias RorkUsbmuxInstallProvider = InstallProvider
 public typealias RorkUsbmuxProvisionProvider = ProvisionProvider
 public typealias RorkUsbmuxMounterProvider = MounterProvider
 
+public struct RorkUsbmuxValidationStatus: Equatable, Sendable, CustomStringConvertible {
+    public let started: Bool
+    public let usbmuxdReady: Bool
+    public let isRemotePairing: Bool
+    public let deviceAddress: String?
+    public let deviceReachable: Bool
+    public let udid: String?
+    public let expectedUDID: String?
+    public let heartbeatReady: Bool
+
+    public var transportReady: Bool {
+        isRemotePairing || usbmuxdReady
+    }
+
+    public var isReady: Bool {
+        started && transportReady && deviceReachable && udidMatches && heartbeatReady
+    }
+
+    public var udidMatches: Bool {
+        guard let expectedUDID else {
+            return udid != nil
+        }
+        return udid == expectedUDID
+    }
+
+    public var description: String {
+        [
+            "started=\(started)",
+            "usbmuxdReady=\(usbmuxdReady)",
+            "transportReady=\(transportReady)",
+            "remotePairing=\(isRemotePairing)",
+            "address=\(deviceAddress ?? "nil")",
+            "reachable=\(deviceReachable)",
+            "udid=\(udid ?? "nil")",
+            "expectedUDID=\(expectedUDID ?? "nil")",
+            "heartbeat=\(heartbeatReady)",
+        ].joined(separator: " ")
+    }
+}
+
+public enum RorkUsbmuxValidationError: LocalizedError, CustomStringConvertible, Equatable, Sendable {
+    case muxerNotStarted(RorkUsbmuxValidationStatus)
+    case usbmuxdNotReady(RorkUsbmuxValidationStatus)
+    case deviceAddressMissing(RorkUsbmuxValidationStatus)
+    case deviceUnreachable(RorkUsbmuxValidationStatus)
+    case deviceDiscoveryFailed(RorkUsbmuxValidationStatus)
+    case unexpectedDevice(expectedUDID: String, actualUDID: String, status: RorkUsbmuxValidationStatus)
+    case trustedLockdownSessionRejected(RorkUsbmuxValidationStatus)
+
+    public var status: RorkUsbmuxValidationStatus {
+        switch self {
+        case let .muxerNotStarted(status),
+             let .usbmuxdNotReady(status),
+             let .deviceAddressMissing(status),
+             let .deviceUnreachable(status),
+             let .deviceDiscoveryFailed(status),
+             let .trustedLockdownSessionRejected(status):
+            return status
+        case let .unexpectedDevice(_, _, status):
+            return status
+        }
+    }
+
+    public var errorDescription: String? {
+        switch self {
+        case let .muxerNotStarted(status):
+            return "usbmux validation failed: minimuxer is not started. \(status)"
+        case let .usbmuxdNotReady(status):
+            return "usbmux validation failed: local usbmuxd listener is not ready. \(status)"
+        case let .deviceAddressMissing(status):
+            return "usbmux validation failed: device tunnel address is missing. \(status)"
+        case let .deviceUnreachable(status):
+            return "usbmux validation failed: device tunnel is not reachable. \(status)"
+        case let .deviceDiscoveryFailed(status):
+            return "usbmux validation failed: device discovery through usbmuxd failed. \(status)"
+        case let .unexpectedDevice(expectedUDID, actualUDID, status):
+            return "usbmux validation failed: expected device \(expectedUDID), but usbmuxd returned \(actualUDID). \(status)"
+        case let .trustedLockdownSessionRejected(status):
+            return "usbmux validation failed: lockdownd did not accept the trusted pairing profile. \(status)"
+        }
+    }
+
+    public var description: String {
+        errorDescription ?? "usbmux validation failed"
+    }
+}
+
 public struct RorkUsbmuxInstallClientOptionKey: RawRepresentable, Hashable, ExpressibleByStringLiteral, Sendable {
     public var rawValue: String
 
@@ -177,6 +264,74 @@ public enum RorkUsbmux {
 
     public static func testDeviceConnection(address: String?) -> Bool {
         Minimuxer.testDeviceConnection(ifaddr: address)
+    }
+
+    public static func validationStatus(
+        deviceAddress: String?,
+        expectedUDID: String? = nil
+    ) -> RorkUsbmuxValidationStatus {
+        retargetUsbmuxdAddr()
+        let started = RorkUsbmuxMuxer.started
+        let usbmuxdReady = RorkUsbmuxMuxer.usbmuxdReady
+        let isRemotePairing = RorkUsbmuxMuxer.isRemotePairing
+        let effectiveAddress = deviceAddress ?? (isRemotePairing ? "10.7.0.1" : nil)
+        let deviceReachable = testDeviceConnection(address: effectiveAddress)
+        let transportReady = isRemotePairing || usbmuxdReady
+        let udid = started && transportReady && deviceReachable ? fetchUDID() : nil
+        let heartbeatReady = isRemotePairing || RorkUsbmuxHeartbeat.lastBeatSuccessful
+
+        return RorkUsbmuxValidationStatus(
+            started: started,
+            usbmuxdReady: usbmuxdReady,
+            isRemotePairing: isRemotePairing,
+            deviceAddress: effectiveAddress,
+            deviceReachable: deviceReachable,
+            udid: udid,
+            expectedUDID: expectedUDID,
+            heartbeatReady: heartbeatReady
+        )
+    }
+
+    @discardableResult
+    public static func validateConnection(
+        deviceAddress: String?,
+        expectedUDID: String? = nil
+    ) throws -> RorkUsbmuxValidationStatus {
+        let status = validationStatus(deviceAddress: deviceAddress, expectedUDID: expectedUDID)
+
+        guard status.started else {
+            throw RorkUsbmuxValidationError.muxerNotStarted(status)
+        }
+
+        guard status.transportReady else {
+            throw RorkUsbmuxValidationError.usbmuxdNotReady(status)
+        }
+
+        guard status.deviceAddress != nil else {
+            throw RorkUsbmuxValidationError.deviceAddressMissing(status)
+        }
+
+        guard status.deviceReachable else {
+            throw RorkUsbmuxValidationError.deviceUnreachable(status)
+        }
+
+        guard let udid = status.udid else {
+            throw RorkUsbmuxValidationError.deviceDiscoveryFailed(status)
+        }
+
+        if let expectedUDID, udid != expectedUDID {
+            throw RorkUsbmuxValidationError.unexpectedDevice(
+                expectedUDID: expectedUDID,
+                actualUDID: udid,
+                status: status
+            )
+        }
+
+        guard status.heartbeatReady else {
+            throw RorkUsbmuxValidationError.trustedLockdownSessionRejected(status)
+        }
+
+        return status
     }
 
     public static func stageApp(bundleId: String, ipaBytes: Data) throws {
