@@ -101,7 +101,7 @@ let libimobiledeviceCSettings: [CSetting] = [
 ]
 
 let package = Package(
-    name: "RorkUsbmux",
+    name: "rork-usbmux",
     platforms: [
         .iOS(.v13),
     ],
