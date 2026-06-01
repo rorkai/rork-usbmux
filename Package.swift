@@ -117,17 +117,12 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "OpenSSL",
-            path: "Vendor/OpenSSL/libssl.xcframework"
-        ),
-        .binaryTarget(
-            name: "OpenSSLCrypto",
-            path: "Vendor/OpenSSL/libcrypto.xcframework"
+            path: "Vendor/OpenSSL/libopenssl.xcframework"
         ),
         .target(
             name: "libimobiledevice",
             dependencies: [
                 "OpenSSL",
-                "OpenSSLCrypto",
             ],
             path: "Vendor/libimobiledevice",
             sources: libimobiledeviceSources,
