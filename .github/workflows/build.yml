@@ -14,8 +14,25 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Select Xcode 26
+        run: |
+          for xcode in \
+            /Applications/Xcode_26.3.app \
+            /Applications/Xcode_26.2.app \
+            /Applications/Xcode_26.1.1.app \
+            /Applications/Xcode_26.0.1.app; do
+            if [ -d "$xcode" ]; then
+              sudo xcode-select -s "$xcode/Contents/Developer"
+              xcodebuild -version
+              exit 0
+            fi
+          done
+
+          echo "No Xcode 26 installation found"
+          exit 1
+
       - name: Build Swift package for iPhoneOS
-        run: xcodebuild -scheme RorkUsbmux -destination 'generic/platform=iOS' -derivedDataPath DerivedData build
+        run: xcodebuild -scheme RorkUsbmux -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath DerivedData build
 
       - name: Build Swift package for iPhone Simulator
-        run: xcodebuild -scheme RorkUsbmux -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedDataSimulator build
+        run: xcodebuild -scheme RorkUsbmux -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedDataSimulator build
