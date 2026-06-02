@@ -1,7 +1,9 @@
 # RorkUsbmux
 
-> Deprecated: RorkUsbmux is no longer maintained. Use
-> [rork-device](https://github.com/rorkai/rork-device) for new iOS device
+> [!WARNING]
+> RorkUsbmux is deprecated and no longer maintained.
+>
+> Use [rork-device](https://github.com/rorkai/rork-device) for new iOS device
 > communication and app-install workflows.
 
 RorkUsbmux is a Rork-maintained Swift Package that makes
